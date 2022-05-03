@@ -333,17 +333,50 @@ int wait(void)
     sleep(curproc, &ptable.lock); // DOC: wait-sleep
   }
 }
-//---
-uint getinttime(struct rtcdate* date)
+// --
+uint getinttime(struct rtcdate *date)
 {
-  return date->year * 10000000000 
-    + date->month   * 100000000 
-    + date->day     * 1000000
-    + date->hour    * 10000
-    + date->minute  * 100
-    + date->second;
+  return date->year * 10000000000 + date->month * 100000000 + date->day * 1000000 + date->hour * 10000 + date->minute * 100 + date->second;
 }
-//---
+// -- Added context switch
+void contextSwitch(struct proc *p)
+{
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  // Switch to chosen process.  It is the process's job
+  // to release ptable.lock and then reacquire it
+  // before jumping back to us.
+  c->proc = p;
+  switchuvm(p);
+  p->state = RUNNING;
+
+  p->age = 0; // *****after running cycle is reset to zero
+
+  swtch(&(c->scheduler), p->context);
+  switchkvm();
+
+  // Process is done running for now.
+  // It should have changed its p->state before coming back.
+  c->proc = 0;
+}
+// Added RR queue
+int RRsched(void)
+{
+  int empty = 0;
+  for (struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state != RUNNABLE)
+      continue;
+    if (p->priority != 1)
+      continue;
+    // select for running
+    contextSwitch(p);
+    empty = 1;
+  }
+  return empty;
+}
+// --
+
 // PAGEBREAK: 42
 //  Per-CPU process scheduler.
 //  Each CPU calls scheduler() after setting itself up.
@@ -354,10 +387,10 @@ uint getinttime(struct rtcdate* date)
 //       via swtch back to the scheduler.
 void scheduler(void)
 {
+  /* below should be commented */
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-
   for (;;)
   {
     // Enable interrupts on this processor.
@@ -365,6 +398,9 @@ void scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    // RRsched();
+    /* below should be commented */
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
       if (p->state != RUNNABLE)
@@ -387,7 +423,6 @@ void scheduler(void)
     release(&ptable.lock);
   }
 }
-
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this
@@ -428,10 +463,11 @@ void changepriority(int pid, uint prioroty)
   struct proc *p = getprocbypid(pid);
   if (p == 0)
     return;
-
+  acquire(&ptable.lock);
   cmostime(&date);
   p->p2inittime = getinttime(&date);
   p->priority = prioroty;
+  release(&ptable.lock);
 }
 
 void age(void)
