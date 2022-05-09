@@ -379,7 +379,7 @@ int FCFS_sched()
   }
   if (choice != 0)
   {
-    contextswitch(choice);
+    contextSwitch(choice);
   }
 
   return choice != 0;
@@ -425,7 +425,7 @@ void scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    // RRsched();
+    // RR_sched();
     /* below should be commented */
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
@@ -504,7 +504,7 @@ void age(void)
     if (p->state == RUNNABLE)
       p->age++;
 
-    if (p->age >= PROMOTEAGE && p->priority > 1)
+    if (p->age >= PROMOTEAGE && p->priority > 1 && p->priority <  3 )
     {
       changepriority(p->pid, p->priority - 1);
     }
