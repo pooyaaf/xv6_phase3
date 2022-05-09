@@ -128,6 +128,7 @@ found:
   // ---
   p->age = 0;
   p->priority = 2;
+  p->cyclecnt = 1;
   // ---
   return p;
 }
@@ -335,7 +336,7 @@ int wait(void)
     sleep(curproc, &ptable.lock); // DOC: wait-sleep
   }
 }
-// --- Init time 
+// --- Init time
 uint getInitTime(struct rtcdate *date)
 {
   return date->year * 10000000000 + date->month * 100000000 + date->day * 1000000 + date->hour * 10000 + date->minute * 100 + date->second;
@@ -360,6 +361,7 @@ void contextSwitch(struct proc *p)
   // Process is done running for now.
   // It should have changed its p->state before coming back.
   c->proc = 0;
+  p->cyclecnt++;
 }
 // ---Added FCFS
 int FCFS_sched()
@@ -372,7 +374,7 @@ int FCFS_sched()
     {
       choice = p;
     }
-    else if (choice-> inittime > p->inittime)
+    else if (choice->inittime > p->inittime)
     {
       choice = p;
     }
@@ -504,7 +506,7 @@ void age(void)
     if (p->state == RUNNABLE)
       p->age++;
 
-    if (p->age >= PROMOTEAGE && p->priority > 1 && p->priority <  3 )
+    if (p->age >= PROMOTEAGE && p->priority > 1 && p->priority < 3)
     {
       changepriority(p->pid, p->priority - 1);
     }
@@ -651,5 +653,90 @@ void procdump(void)
         cprintf(" %p", pc[i]);
     }
     cprintf("\n");
+  }
+}
+// *****NEW-system call for printing ptable
+void printwhitespace(int num)
+{
+  char ws[30];
+  strncpy(ws, "                              ", 30);
+  ws[num] = '\0';
+  cprintf("%s", ws);
+}
+int intlen(uint num)
+{
+  if (num == 0)
+    return 1;
+  int res = 0;
+  while (num)
+  {
+    res++;
+    num /= 10;
+  }
+  return res;
+}
+char* getstateproc(int num)
+{
+  switch (num)
+  {
+  case 0:
+    return "UNUSED";
+  case 1:
+    return "EMBRYO";
+    break;
+  case 2:
+    return "SLEEPING";
+    break;
+  case 3:
+    return "RUNNABLE";
+    break;
+  case 4:
+    return "RUNNING";
+    break;
+  case 5:
+    return "ZOMBIE";
+    break;
+  default:
+    break;
+  }
+  return "NONE";
+}
+
+void printprocs(void)
+{
+
+  cprintf("name");
+  printwhitespace(12);
+  cprintf("pid");
+  printwhitespace(3);
+  cprintf("state");
+  printwhitespace(5);
+  cprintf("queue_level");
+  printwhitespace(3);
+  cprintf("cycle");
+  printwhitespace(3);
+  cprintf("arrival");
+  printwhitespace(3);
+  cprintf("HRRN");
+  printwhitespace(5);
+  cprintf("MHRRN\n");
+  printwhitespace(4);
+  cprintf("-----------------------------------------------------------------------------\n");
+  for (struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state == 0)
+      continue;
+    cprintf("%s", p->name);
+    printwhitespace(16 - strlen(p->name));
+    cprintf("%d", p->pid);
+    printwhitespace(6 - intlen(p->pid));
+    cprintf("%s", getstateproc(p->state));
+    printwhitespace(10 - strlen(getstateproc(p->state)));
+    cprintf("%d", p->priority);
+    printwhitespace(14 - intlen(p->priority));
+    cprintf("%d", p->cyclecnt);
+    printwhitespace(8 - intlen(p->cyclecnt));
+    cprintf("%d", p->inittime);
+    printwhitespace(10 - intlen(p->inittime));
   }
 }

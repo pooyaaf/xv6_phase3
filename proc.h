@@ -62,7 +62,8 @@ struct proc
   char name[16];              // Process name (debugging)
   uint age;
   uint priority;
-  uint inittime; 
+  uint inittime;
+  uint cyclecnt; 
 };
 
 // Process memory is laid out contiguously, low addresses first:

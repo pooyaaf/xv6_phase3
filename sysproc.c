@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "proc.h"
 
+// syscall for change queue
 int sys_chpp(void)
 {
   int pid, priority;
@@ -15,6 +16,13 @@ int sys_chpp(void)
     return -1;
 
   changepriority(pid, priority);
+  return 0;
+}
+
+// syscall for print
+int sys_printprocs(void)
+{
+  printprocs();
   return 0;
 }
 
