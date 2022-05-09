@@ -125,8 +125,10 @@ found:
   p->context = (struct context *)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  // ---
   p->age = 0;
   p->priority = 2;
+  // ---
   return p;
 }
 
@@ -333,8 +335,8 @@ int wait(void)
     sleep(curproc, &ptable.lock); // DOC: wait-sleep
   }
 }
-// --
-uint getinttime(struct rtcdate *date)
+// --- Init time 
+uint getInitTime(struct rtcdate *date)
 {
   return date->year * 10000000000 + date->month * 100000000 + date->day * 1000000 + date->hour * 10000 + date->minute * 100 + date->second;
 }
@@ -359,8 +361,32 @@ void contextSwitch(struct proc *p)
   // It should have changed its p->state before coming back.
   c->proc = 0;
 }
+// ---Added FCFS
+int FCFS_sched()
+{
+  struct proc *p = 0;
+  struct proc *choice = 0;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->priority == 2 && p->state == RUNNABLE)
+    {
+      choice = p;
+    }
+    else if (choice-> inittime > p->inittime)
+    {
+      choice = p;
+    }
+  }
+  if (choice != 0)
+  {
+    contextswitch(choice);
+  }
+
+  return choice != 0;
+}
+
 // Added RR queue
-int RRsched(void)
+int RR_sched(void)
 {
   int empty = 0;
   for (struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -465,7 +491,7 @@ void changepriority(int pid, uint prioroty)
     return;
   acquire(&ptable.lock);
   cmostime(&date);
-  p->p2inittime = getinttime(&date);
+  p->inittime = getInitTime(&date);
   p->priority = prioroty;
   release(&ptable.lock);
 }
