@@ -125,7 +125,8 @@ void changepriority(int pid, uint prioroty);
 // swtch.S
 void swtch(struct context **, struct context *);
 // system call for print process scheduling state
-void            printprocs(void); 
+void printprocs(void);
+void get_rank_coef(int*, int*, int*);
 // spinlock.c
 void acquire(struct spinlock *);
 void getcallerpcs(void *, uint *);

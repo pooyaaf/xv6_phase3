@@ -105,6 +105,7 @@ extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_chpp(void);
 extern int sys_printprocs(void);
+extern int sys_get_rank_coef(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -130,6 +131,7 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_chpp] sys_chpp,
 [SYS_printprocs] sys_printprocs,
+[SYS_get_rank_coef] sys_get_rank_coef,
 };
 
 void

@@ -63,7 +63,7 @@ struct proc
   uint age;
   uint priority;
   uint inittime;
-  uint cyclecnt; 
+  float cyclecnt; 
 };
 
 // Process memory is laid out contiguously, low addresses first:

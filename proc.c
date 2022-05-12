@@ -361,7 +361,7 @@ void contextSwitch(struct proc *p)
   // Process is done running for now.
   // It should have changed its p->state before coming back.
   c->proc = 0;
-  p->cyclecnt++;
+  p->cyclecnt += 0.1;
 }
 // ---Added FCFS
 int FCFS_sched()
@@ -370,40 +370,63 @@ int FCFS_sched()
   struct proc *choice = 0;
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    if (p->priority == 2 && p->state == RUNNABLE)
-    {
+    if (p->priority == 2 && p->state == RUNNABLE &&
+      (choice == 0 || choice->inittime > p->inittime)
+    )
       choice = p;
-    }
-    else if (choice->inittime > p->inittime)
-    {
-      choice = p;
-    }
   }
   if (choice != 0)
   {
     contextSwitch(choice);
   }
 
-  return choice != 0;
+  return choice == 0;
 }
 
 // Added RR queue
 int RR_sched(void)
 {
-  int empty = 0;
+  int empty = 1; // no process at queue 1
+
   for (struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
     if (p->state != RUNNABLE)
       continue;
-    if (p->priority != 1)
-      continue;
-    // select for running
-    contextSwitch(p);
-    empty = 1;
+    if (p->priority == 1)
+    {
+      contextSwitch(p);
+      empty = 0;
+    }
   }
   return empty;
 }
-// --
+
+int get_process_rank(struct proc* p)
+{
+  int time_cf, cycle_cf, pri_cf;
+  get_rank_coef(&time_cf, &cycle_cf, &pri_cf);
+
+  return p->inittime * time_cf + p->cyclecnt * cycle_cf + p->priority * pri_cf;
+}
+
+int BJF_sched()
+{
+  struct proc *p = 0;
+  struct proc *choice = 0;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->priority == 3 && p->state == RUNNABLE && 
+      (choice == 0 || get_process_rank(choice) > get_process_rank(p))
+    )
+      choice = p;
+  }
+  if (choice != 0)
+  {
+    contextSwitch(choice);
+  }
+
+  return choice == 0;
+}
 
 // PAGEBREAK: 42
 //  Per-CPU process scheduler.
@@ -415,10 +438,9 @@ int RR_sched(void)
 //       via swtch back to the scheduler.
 void scheduler(void)
 {
-  /* below should be commented */
-  struct proc *p;
-  struct cpu *c = mycpu();
-  c->proc = 0;
+  // struct proc *p;
+  // struct cpu *c = mycpu();
+  // c->proc = 0;
   for (;;)
   {
     // Enable interrupts on this processor.
@@ -427,27 +449,31 @@ void scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    // RR_sched();
+    if (RR_sched()) 
+      if (FCFS_sched())
+        BJF_sched();
+
     /* below should be commented */
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    {
-      if (p->state != RUNNABLE)
-        continue;
+    // for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    // {
+    //   if (p->state != RUNNABLE)
+    //     continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+    //   // Switch to chosen process.  It is the process's job
+    //   // to release ptable.lock and then reacquire it
+    //   // before jumping back to us.
+    //   c->proc = p;
+    //   switchuvm(p);
+    //   p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+    //   swtch(&(c->scheduler), p->context);
+    //   switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-    }
+    //   // Process is done running for now.
+    //   // It should have changed its p->state before coming back.
+    //   c->proc = 0;
+    // }
+    age();
     release(&ptable.lock);
   }
 }
@@ -485,7 +511,7 @@ void yield(void)
   release(&ptable.lock);
 }
 // --
-void changepriority(int pid, uint prioroty)
+void changepriority(int pid, uint priority)
 {
   struct rtcdate date;
   struct proc *p = getprocbypid(pid);
@@ -494,7 +520,7 @@ void changepriority(int pid, uint prioroty)
   acquire(&ptable.lock);
   cmostime(&date);
   p->inittime = getInitTime(&date);
-  p->priority = prioroty;
+  p->priority = priority;
   release(&ptable.lock);
 }
 
@@ -700,6 +726,13 @@ char* getstateproc(int num)
     break;
   }
   return "NONE";
+}
+
+void get_rank_coef(int* time_cf, int* cycle_cf, int* pri_cf)
+{
+  *time_cf = 2;
+  *cycle_cf = 2;
+  *pri_cf = 2;
 }
 
 void printprocs(void)

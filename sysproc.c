@@ -26,6 +26,16 @@ int sys_printprocs(void)
   return 0;
 }
 
+int sys_get_rank_coef(void)
+{
+  int time_cf, cycle_cf, pri_cf;
+  if (argint(0, &time_cf) < 0 || argint(1, &cycle_cf) < 0 || argint(2, &pri_cf))
+    return -1;
+
+  get_rank_coef(&time_cf, &cycle_cf, &pri_cf);
+  return 0;
+}
+
 int sys_fork(void)
 {
   return fork();

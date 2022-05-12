@@ -25,6 +25,7 @@ int sleep(int);
 int uptime(void);
 int chpp(int, int);
 int printprocs(void);
+void get_rank_coef(int*, int*, int*);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

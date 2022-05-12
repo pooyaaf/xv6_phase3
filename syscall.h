@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_chpp 22
 #define SYS_printprocs 23
+#define SYS_get_rank_coef 24
