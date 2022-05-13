@@ -756,7 +756,9 @@ void printprocs(void)
   printwhitespace(3);
   cprintf("arrival");
   printwhitespace(3);
-  cprintf("rank\n");
+  cprintf("rank");
+  printwhitespace(3);
+  cprintf("age\n");
   cprintf("-----------------------------------------------------------------------------\n");
   for (struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
@@ -774,6 +776,8 @@ void printprocs(void)
     printwhitespace(8 - intlen(p->cyclecnt));
     cprintf("%d", p->inittime);
     printwhitespace(10 - intlen(p->inittime));
+    cprintf("%d", get_process_rank(p));
+    printwhitespace(8 - intlen(get_process_rank(p)));
     cprintf("%d\n", p->age);
   }
   cprintf("-----------------------------------------------------------------------------\n");
