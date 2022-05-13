@@ -77,6 +77,13 @@ getprocbypid(int pid)
       break;
   return p;
 }
+
+uint getInitTime(struct rtcdate *date)
+{
+  return /*date->year * 10000000000 + date->month * 100000000 +  date->day * 1000000 + */ 
+  date->hour * 10000 + date->minute * 100 + date->second;
+}
+
 // ---
 // PAGEBREAK: 32
 //  Look in the process table for an UNUSED proc.
@@ -126,9 +133,12 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
   // ---
+  struct rtcdate date;
+  cmostime(&date);
   p->age = 0;
   p->priority = 2;
   p->cyclecnt = 1;
+  p->inittime = getInitTime(&date);
   // ---
   return p;
 }
@@ -336,11 +346,7 @@ int wait(void)
     sleep(curproc, &ptable.lock); // DOC: wait-sleep
   }
 }
-// --- Init time
-uint getInitTime(struct rtcdate *date)
-{
-  return date->year * 10000000000 + date->month * 100000000 + date->day * 1000000 + date->hour * 10000 + date->minute * 100 + date->second;
-}
+
 // -- Added context switch
 void contextSwitch(struct proc *p)
 {
@@ -406,7 +412,7 @@ int get_process_rank(struct proc* p)
   int time_cf, cycle_cf, pri_cf;
   get_rank_coef(&time_cf, &cycle_cf, &pri_cf);
 
-  return p->inittime * time_cf + p->cyclecnt * cycle_cf + p->priority * pri_cf;
+  return p->inittime * time_cf + (int)p->cyclecnt * cycle_cf + p->priority * pri_cf;
 }
 
 int BJF_sched()
@@ -511,7 +517,7 @@ void yield(void)
   release(&ptable.lock);
 }
 // --
-void changepriority(int pid, uint priority)
+void changepriority(int pid, int priority)
 {
   struct rtcdate date;
   struct proc *p = getprocbypid(pid);
@@ -750,10 +756,7 @@ void printprocs(void)
   printwhitespace(3);
   cprintf("arrival");
   printwhitespace(3);
-  cprintf("HRRN");
-  printwhitespace(5);
-  cprintf("MHRRN\n");
-  printwhitespace(4);
+  cprintf("rank\n");
   cprintf("-----------------------------------------------------------------------------\n");
   for (struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
@@ -767,9 +770,11 @@ void printprocs(void)
     printwhitespace(10 - strlen(getstateproc(p->state)));
     cprintf("%d", p->priority);
     printwhitespace(14 - intlen(p->priority));
-    cprintf("%d", p->cyclecnt);
+    cprintf("%d", (int)p->cyclecnt);
     printwhitespace(8 - intlen(p->cyclecnt));
     cprintf("%d", p->inittime);
     printwhitespace(10 - intlen(p->inittime));
+    cprintf("%d\n", p->age);
   }
+  cprintf("-----------------------------------------------------------------------------\n");
 }

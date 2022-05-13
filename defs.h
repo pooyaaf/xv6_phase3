@@ -121,7 +121,7 @@ int wait(void);
 void wakeup(void *);
 void yield(void);
 void age(void);
-void changepriority(int pid, uint prioroty);
+void changepriority(int pid, int prioroty);
 // swtch.S
 void swtch(struct context **, struct context *);
 // system call for print process scheduling state
